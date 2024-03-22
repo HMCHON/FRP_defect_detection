@@ -133,3 +133,42 @@ model = ViT()
 print(model)
 model(torch.ones((1, 3, 144, 144)))
 '''
+
+# ''' Train Vanilla Transformer model '''
+# from torch.utils.data import DataLoader
+# from torch.utils.data import random_split
+# train_split = int(0.8 * len(dataset))
+# train, test = random_split(dataset, [train_split, len(dataset) - train_split])
+# train_dataloader = DataLoader(train, batch_size=32, shuffle=True)
+# test_dataloader = DataLoader(test, batch_size=32, shuffle=True)
+#
+# import torch.optim as optim
+# import numpy as np
+#
+# device = "cuda"
+# model = ViT().to(device)
+# optimizer = optim.AdamW(model.parameters(), lr=0.001)
+# criterion = nn.CrossEntropyLoss()
+#
+# for epoch in range(1000):
+#     epoch_losses = []
+#     model.train()
+#     for step, (inputs, labels) in enumerate(train_dataloader):
+#         inputs, labels = inputs.to(device), labels.to(device)
+#         optimizer.zero_grad()
+#         outputs = model(inputs)
+#         loss = criterion(outputs, labels)
+#         loss.backward()
+#         optimizer.step()
+#         epoch_losses.append(loss.item())
+#     if epoch % 5 == 0:
+#         print(f">>> Epoch {epoch} train loss: ", np.mean(epoch_losses))
+#         epoch_losses = []
+#         # Something was strange when using this?
+#         # model.eval()
+#         for step, (inputs, labels) in enumerate(test_dataloader):
+#             inputs, labels = inputs.to(device), labels.to(device)
+#             outputs = model(inputs)
+#             loss = criterion(outputs, labels)
+#             epoch_losses.append(loss.item())
+#         print(f">>> Epoch {epoch} test loss: ", np.mean(epoch_losses))
