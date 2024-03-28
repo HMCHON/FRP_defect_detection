@@ -1,6 +1,6 @@
 {
   "height": 256,
   "witdh": 256,
-  "patch_num": 256,
+  "patch_size": 16,
   "patch_stride": 2
 }
