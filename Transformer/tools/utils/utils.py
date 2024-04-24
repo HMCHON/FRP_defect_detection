@@ -24,7 +24,7 @@ def save_to_npy(data, file_name):
     np.save(file_name, data)
     print(f'{file_name}에 데이터가 저장되었습니다.')
 
-def create_directiry(directory):
+def create_directory(directory):
     """
     경로를 받아 있는지 확인하고, 경로가 없으면 생성하는 함수
     :param directory: 생성할 경로
@@ -36,7 +36,7 @@ def create_directiry(directory):
     except OSError:
         print("Error: Failed to create the directory.")
 
-def re_index_temperature_data_based_on_csv(음temperature_data_path, csv_data_name_with_path):
+def re_index_temperature_data_based_on_csv(temperature_data_path, csv_data_name_with_path):
     """
     온도 데이터와 csv 파일의 위치 데이터를 매칭하는 함수.
     :param temperature_data_path: 온도 데이터가 저장되어 있는 txt 파일의 경로 ['node', 'temperature']
@@ -69,43 +69,6 @@ def process_all_txt_files_in_folder(folder_path, csv_data_name_with_path):
         if file_name.endswith('.txt'):
             temperature_data_path = os.path.join(folder_path, file_name)
             re_index_temperature_data_based_on_csv(temperature_data_path, csv_data_name_with_path)
-
-
-# csv_name = '/home/lams/Desktop/PycharmProjects/FRP_defect_detection/Transformer/dataset/row_data/Air_Defect_20_30_35_result/Defect_Air_20x20_30x30_35x35.csv'
-# temp_name = '/home/lams/Desktop/PycharmProjects/FRP_defect_detection/Transformer/dataset/row_data/Air_Defect_20_30_35_result'
-# process_all_txt_files_in_folder(temp_name, csv_name)
-# print('Air_Defect_20_30_35')
-#
-# csv_name = '/home/lams/Desktop/PycharmProjects/FRP_defect_detection/Transformer/dataset/row_data/Air_Defect_50_result/Defect_Air_50x50.csv'
-# temp_name = '/home/lams/Desktop/PycharmProjects/FRP_defect_detection/Transformer/dataset/row_data/Air_Defect_50_result'
-# process_all_txt_files_in_folder(temp_name, csv_name)
-# print('Air_Defect_50')
-#
-# csv_name = '/home/lams/Desktop/PycharmProjects/FRP_defect_detection/Transformer/dataset/row_data/Air_Defect_40_result/Defect_Air_40x40.csv'
-# temp_name = '/home/lams/Desktop/PycharmProjects/FRP_defect_detection/Transformer/dataset/row_data/Air_Defect_40_result'
-# process_all_txt_files_in_folder(temp_name, csv_name)
-# print('Air_Defect_40')
-#
-# csv_name = '/home/lams/Desktop/PycharmProjects/FRP_defect_detection/Transformer/dataset/row_data/None_Defect_result/None_Defect.csv'
-# temp_name = '/home/lams/Desktop/PycharmProjects/FRP_defect_detection/Transformer/dataset/row_data/None_Defect_result'
-# process_all_txt_files_in_folder(temp_name, csv_name)
-# print('None_Defect')
-#
-# csv_name = '/home/lams/Desktop/PycharmProjects/FRP_defect_detection/Transformer/dataset/row_data/Vacuum_Defect_20_30_35_result/Defect_Empty_20x20_30x30_35x35.csv'
-# temp_name = '/home/lams/Desktop/PycharmProjects/FRP_defect_detection/Transformer/dataset/row_data/Vacuum_Defect_20_30_35_result'
-# process_all_txt_files_in_folder(temp_name, csv_name)
-# print('Vacuum_Defect_20_30_35')
-#
-# csv_name = '/home/lams/Desktop/PycharmProjects/FRP_defect_detection/Transformer/dataset/row_data/Vacuum_Defect_40_result/Defect_Empty_40x40.csv'
-# temp_name = '/home/lams/Desktop/PycharmProjects/FRP_defect_detection/Transformer/dataset/row_data/Vacuum_Defect_40_result'
-# process_all_txt_files_in_folder(temp_name, csv_name)
-# print('Vacuum_Defect_40')
-#
-# csv_name = '/home/lams/Desktop/PycharmProjects/FRP_defect_detection/Transformer/dataset/row_data/Vacuum_Defect_50_result/Defect_Empty_50x50.csv'
-# temp_name = '/home/lams/Desktop/PycharmProjects/FRP_defect_detection/Transformer/dataset/row_data/Vacuum_Defect_50_result'
-# process_all_txt_files_in_folder(temp_name, csv_name)
-# print('Vacuum_Defect_50')
-
 
 def create_square_matrix_each_temperature_data_ansys_version(temperature_data_csv, row1, row2):
     df = pd.read_csv(temperature_data_csv)
@@ -178,15 +141,6 @@ def resize_csv_data(csv_file_path, target_shape=(256, 256)):
     resize_temp_data = zoom(data, (scale_x, scale_y))
     return resize_temp_data
 
-
-
-# tmp = '/home/lams/Desktop/PycharmProjects/FRP_defect_detection/Transformer/dataset/row_data/Temperature 1_sorted.csv'
-# row1 = 221
-# row2 = 111
-# chunk = create_square_matrix_each_temperature_data_ansys_version(tmp, row1, row2)
-# chunks = chunks_to_2d_array(chunk)
-# save_2d_array_to_csv(chunks, 'test.csv')
-# save_2d_array_to_csv(resize_csv_data('/home/lams/Desktop/PycharmProjects/FRP_defect_detection/Transformer/tools/utils/test.csv'), 'resized_test.csv')
 
 
 
