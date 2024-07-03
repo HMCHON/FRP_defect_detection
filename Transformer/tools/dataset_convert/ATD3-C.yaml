@@ -4,3 +4,4 @@ patch_size: 16
 patch_stride: 2
 targetCSVpath: /home/lams/Desktop/PycharmProjects/FRP_defect_detection/Transformer/dataset/ATD3/node_csv
 savePath: ""
+time_stamp: 9

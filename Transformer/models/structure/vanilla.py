@@ -111,64 +111,72 @@ class ViT(nn.Module):
         # Classification head
         self.head = nn.Sequential(nn.LayerNorm(emb_dim), nn.Linear(emb_dim, out_dim))
 
-
-    def forward(self, img):
-        # Get patch embedding vectors
+    def forward(self, img, return_features=False):
         x = self.patch_embedding(img)
         b, n, _ = x.shape
-
-        # Add cls token to inputs
-        cls_tokens = repeat(self.cls_token, '1 1 d -> b 1 d', b = b)
+        cls_tokens = repeat(self.cls_token, '1 1 d -> b 1 d', b=b)
         x = torch.cat([cls_tokens, x], dim=1)
         x += self.pos_embedding[:, :(n + 1)]
 
-        # Transformer layers
-        for i in range(self.n_layers):
-            x = self.layers[i](x)
+        for layer in self.layers:
+            x = layer(x)
 
-        # Output based on classification token
-        return self.head(x[:, 0, :])
+        if return_features:
+            return x  # 마지막 트랜스포머 레이어의 출력
+
+        x = self.head(x[:, 0, :])
+        return x
 '''
 model = ViT()
 print(model)
 model(torch.ones((1, 3, 144, 144)))
 '''
 
-# ''' Train Vanilla Transformer model '''
-# from torch.utils.data import DataLoader
-# from torch.utils.data import random_split
-# train_split = int(0.8 * len(dataset))
-# train, test = random_split(dataset, [train_split, len(dataset) - train_split])
-# train_dataloader = DataLoader(train, batch_size=32, shuffle=True)
-# test_dataloader = DataLoader(test, batch_size=32, shuffle=True)
-#
-# import torch.optim as optim
-# import numpy as np
-#
-# device = "cuda"
-# model = ViT().to(device)
-# optimizer = optim.AdamW(model.parameters(), lr=0.001)
-# criterion = nn.CrossEntropyLoss()
-#
-# for epoch in range(1000):
-#     epoch_losses = []
-#     model.train()
-#     for step, (inputs, labels) in enumerate(train_dataloader):
-#         inputs, labels = inputs.to(device), labels.to(device)
-#         optimizer.zero_grad()
-#         outputs = model(inputs)
-#         loss = criterion(outputs, labels)
-#         loss.backward()
-#         optimizer.step()
-#         epoch_losses.append(loss.item())
-#     if epoch % 5 == 0:
-#         print(f">>> Epoch {epoch} train loss: ", np.mean(epoch_losses))
-#         epoch_losses = []
-#         # Something was strange when using this?
-#         # model.eval()
-#         for step, (inputs, labels) in enumerate(test_dataloader):
-#             inputs, labels = inputs.to(device), labels.to(device)
-#             outputs = model(inputs)
-#             loss = criterion(outputs, labels)
-#             epoch_losses.append(loss.item())
-#         print(f">>> Epoch {epoch} test loss: ", np.mean(epoch_losses))
+''' Train Vanilla Transformer model '''
+from torch.utils.data import DataLoader
+from torch.utils.data import random_split
+train_split = int(0.8 * len(dataset))
+train, test = random_split(dataset, [train_split, len(dataset) - train_split])
+train_dataloader = DataLoader(train, batch_size=32, shuffle=True)
+test_dataloader = DataLoader(test, batch_size=32, shuffle=True)
+
+import torch.optim as optim
+import numpy as np
+
+device = "cuda"
+model = ViT().to(device)
+optimizer = optim.AdamW(model.parameters(), lr=0.001)
+criterion = nn.CrossEntropyLoss()
+
+for epoch in range(1000):
+    epoch_losses = []
+    model.train()
+    for step, (inputs, labels) in enumerate(train_dataloader):
+        inputs, labels = inputs.to(device), labels.to(device)
+        optimizer.zero_grad()
+        outputs = model(inputs)
+        loss = criterion(outputs, labels)
+        loss.backward()
+        optimizer.step()
+        epoch_losses.append(loss.item())
+    if epoch % 5 == 0:
+        print(f">>> Epoch {epoch} train loss: ", np.mean(epoch_losses))
+        epoch_losses = []
+        # Something was strange when using this?
+        # model.eval()
+        for step, (inputs, labels) in enumerate(test_dataloader):
+            inputs, labels = inputs.to(device), labels.to(device)
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
+            epoch_losses.append(loss.item())
+        print(f">>> Epoch {epoch} test loss: ", np.mean(epoch_losses))
+
+'''
+# 학습이 완료된 후
+model.eval()  # 평가 모드로 설정
+with torch.no_grad():
+    inputs, _ = next(iter(test_dataloader))
+    inputs = inputs.to(device)
+    features = model(inputs, return_features=True)
+    print(f"Feature map size: {features.size()}")
+'''

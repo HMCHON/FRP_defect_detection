@@ -23,10 +23,11 @@ class TemperatureAnalysis:
     def load_and_combine_temperature_data(self):
         temperature_data = pd.DataFrame()
         for i in range(1, self.num_files + 1):
-            file_path = os.path.join(self.base_path, f"temperature_Temperature {i}_sorted.csv")
-            temp_df = pd.read_csv(file_path)
+            num = str(i).zfill(3)
+            file_path = os.path.join(self.base_path, f"Temperature_{num}.csv")
+            temp_df = pd.read_csv(file_path, usecols=['node', 'temperature'])  # 'node'와 'temperature' 컬럼만 읽어오기
             temp_df['temperature'] = pd.to_numeric(temp_df['temperature'], errors='coerce')
-            temp_df.rename(columns={'temperature': f'temperature_t{i}'}, inplace=True)
+            temp_df.rename(columns={'temperature': f'temperature_t{num}'}, inplace=True)
             if temperature_data.empty:
                 temperature_data = temp_df
             else:
@@ -36,11 +37,17 @@ class TemperatureAnalysis:
     def calculate_differences(self, df):
         delta_dict = {}
         for i in range(1, self.num_files):
-            delta_key = f'ΔT{i}{i + 1}'
-            delta_dict[delta_key] = df[f'temperature_t{i + 1}'] - df[f'temperature_t{i}']
+            num = str(i).zfill(3)
+            num1 = str(i+1).zfill(3)
+            num2 = str(i+2).zfill(3)
+            delta_key = f'ΔT{num}{num1}'
+            delta_dict[delta_key] = df[f'temperature_t{num1}'] - df[f'temperature_t{num}']
         for i in range(1, self.num_files - 1):
-            delta_delta_key = f'ΔT{i}{i + 1}{i + 2}'
-            delta_dict[delta_delta_key] = delta_dict[f'ΔT{i + 1}{i + 2}'] - delta_dict[f'ΔT{i}{i + 1}']
+            num = str(i).zfill(3)
+            num1 = str(i+1).zfill(3)
+            num2 = str(i+2).zfill(3)
+            delta_delta_key = f'ΔT{num}{num1}{num2}'
+            delta_dict[delta_delta_key] = delta_dict[f'ΔT{num1}{num2}'] - delta_dict[f'ΔT{num}{num1}']
         df = pd.concat([df, pd.DataFrame(delta_dict)], axis=1)
         return df
 
@@ -90,29 +97,5 @@ class TemperatureAnalysis:
             self.save_data(data, 'temperature_data.csv')
             self.save_data(results, 'result.csv')
 
-        self.plot_and_save(results)
-
-
-def subdirectories(directory):
-    # directory 아래의 모든 디렉토리를 순회
-    for root, dirs, files in os.walk(directory):
-        for name in dirs:
-            print(os.path.join(root, name))
-
-# 사용 예시:
-TopDirectory = '/home/lams/Desktop/PycharmProjects/FRP_defect_detection/Transformer/dataset/ATD3_2'
-for root, dirs, files in os.walk(TopDirectory):
-    for name in dirs:
-        BasePath = os.path.join(root, name)
-        print(BasePath)
-
-        if BasePath != '/home/lams/Desktop/PycharmProjects/FRP_defect_detection/Transformer/dataset/ATD3_2/Air_Defect_50_result' and\
-                BasePath != '/home/lams/Desktop/PycharmProjects/FRP_defect_detection/Transformer/dataset/ATD3_2/Vacuum_Defect_40_result' and \
-                BasePath != '/home/lams/Desktop/PycharmProjects/FRP_defect_detection/Transformer/dataset/ATD3_2/Vacuum_Defect_50_result':
-
-            num_files = 900  # 파일 수
-            for i in [0, 1,2]:
-                mode = i  # 선택한 모드
-
-                analysis = TemperatureAnalysis(BasePath, BasePath, num_files, mode)
-                analysis.run()
+        if self.mode != 3:
+            self.plot_and_save(results)
