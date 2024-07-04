@@ -71,7 +71,7 @@ class create_dataset:
 if __name__ == "__main__":
     # 만약, 1HZ로 데이터를 전처리해야 한다면, 1hz_images.py 실행
     base_path = '/media/lams/D/PycharmProjects/FRP_defect_detection/Transformer/dataset/FATD3'
-    target_folder_name_list = ['N-1','4-1','4-2','4-3','4-4','4-5','4-6']
+    target_folder_name_list = ['4-3']
 
     """
      If you need to analyze FADT3 dataset, use the "TemperatureAnalysis" function.

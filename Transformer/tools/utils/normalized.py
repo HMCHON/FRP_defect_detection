@@ -39,7 +39,7 @@ def min_max_normalize_3d_image(data1, data2, data3, min_temp, max_temp):
 
 def save_to_png(array, path, name):
     # 3차원 이미지를 RGB로 시각화 (여백, 축, 그리드 없음)
-    fig, ax = plt.subplots(figsize=(array.shape[1], array.shape[0]), dpi=80)
+    fig, ax = plt.subplots(figsize=(array.shape[1], array.shape[0]), dpi=1)
     ax.imshow(array)
     ax.axis('off')  # x축, y축 제거
     plt.subplots_adjust(left=0, right=1, top=1, bottom=0)  # 여백 제거
