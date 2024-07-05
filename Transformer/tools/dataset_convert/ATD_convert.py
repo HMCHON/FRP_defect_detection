@@ -43,24 +43,24 @@ class create_dataset:
             max_temp = selected_data.max().max()
             min_temp = selected_data.min().min()
 
-            # 데이터 사이즈 맞추기 (64*64로)
+            # 데이터 사이즈 맞추기 (256*256으로)
             down_data1 = downsample_temperature_data_by_physical_range(x_coords,
                                                                        y_coords,
                                                                        temperatures,
                                                                        physical_length=10.0,
-                                                                       grid_size=64,
+                                                                       grid_size=256,
                                                                        method='min')
             down_data2 = downsample_temperature_data_by_physical_range(x_coords,
                                                                        y_coords,
                                                                        temperatures,
                                                                        physical_length=10.0,
-                                                                       grid_size=64,
+                                                                       grid_size=256,
                                                                        method='max')
             down_data3 = downsample_temperature_data_by_physical_range(x_coords,
                                                                        y_coords,
                                                                        temperatures,
                                                                        physical_length=10.0,
-                                                                       grid_size=64,
+                                                                       grid_size=256,
                                                                        method='mean')
 
             # Normalized data to min-max method and draw temperature picture
@@ -70,14 +70,14 @@ class create_dataset:
                         f"fig/{target}")
             temp_num = re.findall(r'\d+', target)[0]
             i = 0
-            for matrix in self.matrices:
-                area1 = transform_and_flatten(down_data, matrix)
-                area2 = transform_and_flatten(down_data1, matrix)
-                create_directory(f'{target_temp_path}/T{temp_num}')
-                save_to_npy(area1, f'{target_temp_path}/T{temp_num}/T{i}A{i}.npy')
-                save_to_npy(matrix, f'{target_temp_path}/T{temp_num}/T{i}M{i}.npy')
-                save_to_npy(area2, f'{target_temp_path}/T{temp_num}/T{i}O{i}.npy')
-                i += 1
+            # for matrix in self.matrices:
+            #     area1 = transform_and_flatten(down_data, matrix)
+            #     area2 = transform_and_flatten(down_data1, matrix)
+            #     create_directory(f'{target_temp_path}/T{temp_num}')
+            #     save_to_npy(area1, f'{target_temp_path}/T{temp_num}/T{i}A{i}.npy')
+            #     save_to_npy(matrix, f'{target_temp_path}/T{temp_num}/T{i}M{i}.npy')
+            #     save_to_npy(area2, f'{target_temp_path}/T{temp_num}/T{i}O{i}.npy')
+            #     i += 1
 
 
 

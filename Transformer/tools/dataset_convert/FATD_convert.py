@@ -43,29 +43,29 @@ class create_dataset:
 
             # 데이터 사이즈 맞추기 (64*64로)
             down_data1 = downsample_temperature_data_by_range(data_array,
-                                                              grid_size=64,
+                                                              grid_size=256,
                                                               method='min')
             down_data2 = downsample_temperature_data_by_range(data_array,
-                                                              grid_size=64,
+                                                              grid_size=256,
                                                               method='max')
             down_data3 = downsample_temperature_data_by_range(data_array,
-                                                              grid_size=64,
+                                                              grid_size=256,
                                                               method='mean')
 
             # Normalized data to min-max method and draw temperature picture
             down_data = min_max_normalize_3d_image(down_data1, down_data2, down_data3, min_temp, max_temp)
             save_to_png(down_data, target_temp_path, f"fig/{target}")
-
-            temp_num = re.findall(r'\d+', target)[0]
-            i = 0
-            for matrix in self.matrices:
-                area1 = transform_and_flatten(down_data, matrix)
-                area2 = transform_and_flatten(down_data1, matrix)
-                create_directory(f'{target_temp_path}/T{temp_num}')
-                save_to_npy(area1, f'{target_temp_path}/T{temp_num}/T{i}A{i}.npy')
-                save_to_npy(matrix, f'{target_temp_path}/T{temp_num}/T{i}M{i}.npy')
-                save_to_npy(area2, f'{target_temp_path}/T{temp_num}/T{i}O{i}.npy')
-                i += 1
+            #
+            # temp_num = re.findall(r'\d+', target)[0]
+            # i = 0
+            # for matrix in self.matrices:
+            #     area1 = transform_and_flatten(down_data, matrix)
+            #     area2 = transform_and_flatten(down_data1, matrix)
+            #     create_directory(f'{target_temp_path}/T{temp_num}')
+            #     save_to_npy(area1, f'{target_temp_path}/T{temp_num}/T{i}A{i}.npy')
+            #     save_to_npy(matrix, f'{target_temp_path}/T{temp_num}/T{i}M{i}.npy')
+            #     save_to_npy(area2, f'{target_temp_path}/T{temp_num}/T{i}O{i}.npy')
+            #     i += 1
 
 
 if __name__ == "__main__":

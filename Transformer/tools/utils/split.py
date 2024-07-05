@@ -1,6 +1,8 @@
 import pandas as pd
 import numpy as np
+import random
 from scipy import stats
+from scipy.ndimage import zoom
 
 ''' 256크기의 csv data를 patch로 나누는 함수 (256개의 patch 생성)'''
 def split_csv_data_into_patches(temp_data, patch_size):
@@ -129,6 +131,25 @@ def downsample_temperature_data_by_physical_range(x_coords,
             else:
                 downsampled_data[i, j] = np.nan  # Handle empty cells by assigning NaN
 
+
+    # Replace NaN values with the mean of their neighboring values
+    for i in range(grid_size):
+        for j in range(grid_size):
+            if np.isnan(downsampled_data[i, j]):
+                # Get neighboring indices
+                neighbors = []
+                for ni in range(max(0, i - 1), min(grid_size, i + 2)):
+                    for nj in range(max(0, j - 1), min(grid_size, j + 2)):
+                        if not (ni == i and nj == j) and not np.isnan(downsampled_data[ni, nj]):
+                            neighbors.append(downsampled_data[ni, nj])
+
+                # Calculate the mean of the neighboring values
+                if neighbors:
+                    downsampled_data[i, j] = np.mean(neighbors)
+                else:
+                    downsampled_data[i, j] = random.uniform(np.nanmean(downsampled_data)*0.9,
+                                                            np.nanmean(downsampled_data)*1.1)  # Keep NaN if no valid neighbors
+
     return downsampled_data
 
 ''' temperature data가 들어있는 csv 파일을 64*64 크기(256개)로 변경 (FATD)'''
@@ -139,21 +160,26 @@ def downsample_temperature_data_by_range(temperatures, grid_size=64, method='med
 
     downsampled_data = np.zeros((grid_size, grid_size))
 
-    for i in range(grid_size):
-        for j in range(grid_size):
-            # 현재 그리드의 영역 계산
-            start_i, end_i = int(i * zoom_factor), int((i + 1) * zoom_factor)
-            start_j, end_j = int(j * zoom_factor), int((j + 1) * zoom_factor)
-            grid = temperatures[start_i:end_i, start_j:end_j]
+    if temperatures.shape[0] < grid_size:         # 데이터의 크기가 목표 그리드 크기보다 작은 경우 확대
+        zoom_factors = (grid_size / temperatures.shape[0], grid_size / temperatures.shape[1])
+        downsampled_data = zoom(temperatures, zoom_factors, order=1)  # Bilinear interpolation for resizing (선형 보간)
 
-            # 모드에 따라 해당 그리드의 값을 계산
-            if method == 'median':
-                downsampled_data[i, j] = np.median(grid)
-            elif method == 'min':
-                downsampled_data[i, j] = np.min(grid)
-            elif method == 'max':
-                downsampled_data[i, j] = np.max(grid)
-            elif method == 'mean':
-                downsampled_data[i, j] = np.mean(grid)
+    else:
+        for i in range(grid_size):
+            for j in range(grid_size):
+                # 현재 그리드의 영역 계산
+                start_i, end_i = int(i * zoom_factor), int((i + 1) * zoom_factor)
+                start_j, end_j = int(j * zoom_factor), int((j + 1) * zoom_factor)
+                grid = temperatures[start_i:end_i, start_j:end_j]
+
+                # 모드에 따라 해당 그리드의 값을 계산
+                if method == 'median':
+                    downsampled_data[i, j] = np.median(grid)
+                elif method == 'min':
+                    downsampled_data[i, j] = np.min(grid)
+                elif method == 'max':
+                    downsampled_data[i, j] = np.max(grid)
+                elif method == 'mean':
+                    downsampled_data[i, j] = np.mean(grid)
 
     return downsampled_data
