@@ -65,6 +65,10 @@ class create_dataset:
 
             # Normalized data to min-max method and draw temperature picture
             down_data = min_max_normalize_3d_image(down_data1, down_data2, down_data3, min_temp, max_temp)
+
+            # Add noise to 3ch down_data
+            down_data = add_noise_3d_image(down_data, csv_name)
+
             save_to_png(down_data,
                         target_temp_path,
                         f"fig/{target}")

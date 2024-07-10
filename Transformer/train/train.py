@@ -1,8 +1,8 @@
-from ..models.vanilla import ViT
-from torch.utils.data import DataLoader, random_split
+from ..models.structure.vanilla import *
+
+import torch
 import torch.optim as optim
 import torch.nn as nn
-import torch
 import numpy as np
 
 from load_data import *
@@ -308,7 +308,7 @@ def main(mode, base_path, epochs, model1_n=49, model2_n=49, time_step=9): # 0=�
 
 if __name__ == "__main__":
     mode = 0
-    dataset_path = 'dataset_path'
+    dataset_path = 'dataset_path' # 전체 경로에서 endswith list에 있는 확장자명을 가진 파일을 순서대로 할당(find->append->sort)
     epochs = 10000
 
     # 데이터셋 경로 리스트

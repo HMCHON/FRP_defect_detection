@@ -1,14 +1,15 @@
 import torch
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, Subset
 from PIL import Image
 import os
 from torchvision import transforms
 
 class ImageDataset(Dataset):
-    def __init__(self, file_paths, labels, transform=None):
+    def __init__(self, file_paths, labels, transform=None, add_noise=False):
         self.file_paths = file_paths
         self.labels = labels
         self.transform = transform
+        self.add_noise = add_noise
 
     def __len__(self):
         return len(self.file_paths)
@@ -19,8 +20,22 @@ class ImageDataset(Dataset):
         label = self.labels[idx]
         if self.transform:
             image = self.transform(image)
+        if self.add_noise:
+            image = add_noise(image)
         return image, label
 
+def add_noise(image, mean=0, std=0.1):
+    """
+    이미지에 가우시안 노이즈를 추가하는 함수
+    :param image: 입력 이미지 (Tensor)
+    :param mean: 노이즈의 평균값
+    :param std: 노이즈의 표준편차
+    :return: 노이즈가 추가된 이미지 (Tensor)
+    """
+    noise = torch.randn(image.size()) * std + mean
+    noisy_image = image + noise
+    noisy_image = torch.clamp(noisy_image, 0, 1)  # 이미지의 픽셀값을 [0, 1] 범위로 클램핑
+    return noisy_image
 
 def data_loader(file_paths, labels, time_step, batch_size):
     """
@@ -92,6 +107,8 @@ def load_all_datasets(base_path, pattern, time_step, batch_size):
     데이터셋을 로드하는 모든 함수를 실행시키는 함수
     :param base_path: 데이터셋이 위치한 기본 경로
     :param pattern: 찾고자 하는 파일의 패턴
+    :param time_step: 데이터가 모델의 patch 개수와 알맞게 입력될 수 있도록 나머지를 제외하기 위한 변수
+    :param batch_size: 데이터셋을 구성하는 batch 크기
     :return: DataLoader 객체
     """
     matching_file_list, labels = find_specific_files(base_path, time_step, pattern)
