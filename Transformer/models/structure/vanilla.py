@@ -78,9 +78,9 @@ class ResidualAdd(nn.Module):
 ''' Vision Transformer '''
 from einops import repeat
 
-class ViT(nn.Module):
-    def __init__(self, ch=3, img_size=144, patch_size=4, emb_dim=32,
-                n_layers=6, out_dim=37, dropout=0.1, heads=2):
+class ViT1(nn.Module):
+    def __init__(self, ch=3, img_size=64, patch_size=16, emb_dim=32,
+                n_layers=6, out_dim=2, dropout=0.1, heads=2):
         super(ViT, self).__init__()
 
         # Attributes
@@ -100,6 +100,9 @@ class ViT(nn.Module):
             torch.randn(1, num_patches + 1, emb_dim))
         self.cls_token = nn.Parameter(torch.rand(1, 1, emb_dim))
 
+        # Dropout layer
+        self.dropout = nn.Dropout(dropout)
+
         # Transformer Encoder
         self.layers = nn.ModuleList([])
         for _ in range(n_layers):
@@ -109,7 +112,11 @@ class ViT(nn.Module):
             self.layers.append(transformer_block)
 
         # Classification head
-        self.head = nn.Sequential(nn.LayerNorm(emb_dim), nn.Linear(emb_dim, out_dim))
+        self.to_cls_token = nn.Identity()
+        self.head = nn.Sequential(
+            nn.LayerNorm(emb_dim),
+            nn.Linear(emb_dim, out_dim)
+        )
 
     def forward(self, img, return_features=False):
         x = self.patch_embedding(img)
@@ -122,61 +129,98 @@ class ViT(nn.Module):
             x = layer(x)
 
         if return_features:
-            return x  # 마지막 트랜스포머 레이어의 출력
+            return x[:, 0, :]  # 마지막 트랜스포머 레이어의 출력 (batch_size, 17, 32)
 
-        x = self.head(x[:, 0, :])
-        return x
-'''
-model = ViT()
-print(model)
-model(torch.ones((1, 3, 144, 144)))
-'''
+        x = self.to_cls_token(x[:, 0])  # Identity 레이어 사용
+        head_x = self.head(x)  # (batch_size, 2)
+        return x, head_x
 
-''' Train Vanilla Transformer model '''
-from torch.utils.data import DataLoader
-from torch.utils.data import random_split
-train_split = int(0.8 * len(dataset))
-train, test = random_split(dataset, [train_split, len(dataset) - train_split])
-train_dataloader = DataLoader(train, batch_size=32, shuffle=True)
-test_dataloader = DataLoader(test, batch_size=32, shuffle=True)
 
-import torch.optim as optim
-import numpy as np
+class ViT2(nn.Module):
+    def __init__(self, emb_dim=32, time_step=9, num_classes=2, dropout=0.1, n_layers=6, heads=2):
+        super(ViT2, self).__init__()
 
-device = "cuda"
-model = ViT().to(device)
-optimizer = optim.AdamW(model.parameters(), lr=0.001)
-criterion = nn.CrossEntropyLoss()
+        # Attributes
+        self.emb_dim = emb_dim
+        self.time_step = time_step
 
-for epoch in range(1000):
-    epoch_losses = []
-    model.train()
-    for step, (inputs, labels) in enumerate(train_dataloader):
-        inputs, labels = inputs.to(device), labels.to(device)
-        optimizer.zero_grad()
-        outputs = model(inputs)
-        loss = criterion(outputs, labels)
-        loss.backward()
-        optimizer.step()
-        epoch_losses.append(loss.item())
-    if epoch % 5 == 0:
-        print(f">>> Epoch {epoch} train loss: ", np.mean(epoch_losses))
-        epoch_losses = []
-        # Something was strange when using this?
-        # model.eval()
-        for step, (inputs, labels) in enumerate(test_dataloader):
-            inputs, labels = inputs.to(device), labels.to(device)
-            outputs = model(inputs)
-            loss = criterion(outputs, labels)
-            epoch_losses.append(loss.item())
-        print(f">>> Epoch {epoch} test loss: ", np.mean(epoch_losses))
+        # Learnable params
+        self.pos_embedding = nn.Parameter(torch.randn(1, time_step + 1, emb_dim))  # time_step = num_patches
+        self.cls_token = nn.Parameter(torch.randn(1, 1, emb_dim))
 
-'''
-# 학습이 완료된 후
-model.eval()  # 평가 모드로 설정
-with torch.no_grad():
-    inputs, _ = next(iter(test_dataloader))
-    inputs = inputs.to(device)
-    features = model(inputs, return_features=True)
-    print(f"Feature map size: {features.size()}")
-'''
+        # Transformer Encoder
+        self.layers = nn.ModuleList([])
+        for _ in range(n_layers):
+            transformer_block = nn.Sequential(
+                ResidualAdd(PreNorm(emb_dim, Attention(emb_dim, n_heads=heads, dropout=dropout))),
+                ResidualAdd(PreNorm(emb_dim, FeedForward(emb_dim, hidden_dim=emb_dim * 2, dropout=dropout))))
+            self.layers.append(transformer_block)
+
+        # Dropout layer
+        self.dropout = nn.Dropout(dropout)
+
+        # Classification head
+        self.to_cls_token = nn.Identity()
+        self.head = nn.Sequential(
+            nn.LayerNorm(emb_dim),
+            nn.Linear(emb_dim, num_classes)
+        )
+
+    def forward(self, x):
+        # x shape: [batch_size, time_step, emb_dim]
+        batch_size = x.size(0)
+        cls_tokens = self.cls_token.expand(batch_size, -1, -1)  # [batch_size, 1, emb_dim]
+        x = torch.cat((cls_tokens, x), dim=1)  # [batch_size, time_step + 1, emb_dim]
+        x += self.pos_embedding[:, :(self.time_step + 1)]
+        x = self.dropout(x)
+
+        for layer in self.layers:
+            x = layer(x)
+
+        x = self.to_cls_token(x[:, 0])
+        return x, self.head(x)  # [batch_size, emb_dim], [batch_size, num_classes]
+
+
+class ViT3(nn.Module):
+    def __init__(self, emb_dim=32, time_step=49, num_classes=10, dropout=0.1, n_layers=6, heads=2):
+        super(ViT3, self).__init__()
+
+        # Attributes
+        self.emb_dim = emb_dim
+        self.time_step = time_step
+
+        # Learnable params
+        self.pos_embedding = nn.Parameter(torch.randn(1, time_step + 1, emb_dim))
+        self.cls_token = nn.Parameter(torch.randn(1, 1, emb_dim))
+
+        # Transformer Encoder
+        self.layers = nn.ModuleList([])
+        for _ in range(n_layers):
+            transformer_block = nn.Sequential(
+                ResidualAdd(PreNorm(emb_dim, Attention(emb_dim, n_heads=heads, dropout=dropout))),
+                ResidualAdd(PreNorm(emb_dim, FeedForward(emb_dim, hidden_dim=emb_dim * 2, dropout=dropout))))
+            self.layers.append(transformer_block)
+
+        # Dropout layer
+        self.dropout = nn.Dropout(dropout)
+
+        # Classification head
+        self.to_cls_token = nn.Identity()
+        self.head = nn.Sequential(
+            nn.LayerNorm(emb_dim),
+            nn.Linear(emb_dim, num_classes)
+        )
+
+    def forward(self, x):
+        # x shape: [batch_size, time_step, emb_dim]
+        batch_size = x.size(0)
+        cls_tokens = self.cls_token.expand(batch_size, -1, -1)  # [batch_size, 1, emb_dim]
+        x = torch.cat((cls_tokens, x), dim=1)  # [batch_size, time_step + 1, emb_dim]
+        x += self.pos_embedding[:, :(self.time_step + 1)]
+        x = self.dropout(x)
+
+        for layer in self.layers:
+            x = layer(x)
+
+        x = self.to_cls_token(x[:, 0])  # [batch_size, emb_dim]
+        return x, self.head(x)  # [batch_size, num_classes]
