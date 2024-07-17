@@ -24,14 +24,23 @@ def robust_normalized_3d_image(data1, data2, data3):
 
     return normalized_data_robust
 
+import numpy as np
+
 def min_max_normalize_3d_image(data1, data2, data3, min_temp, max_temp):
+    if max_temp == min_temp:
+        raise ValueError("max_temp와 min_temp가 같으면 안됩니다. 이는 0으로 나누는 오류를 발생시킬 수 있습니다.")
+
     combined_data = np.stack((data1, data2, data3), axis=-1)
 
     # 각 채널별로 Min-Max 정규화
-    normalized_data_minmax = np.zeros_like(combined_data)
+    normalized_data_minmax = np.zeros_like(combined_data, dtype=np.float32)
 
     for i in range(combined_data.shape[-1]):
+        # Min-Max 정규화
         normalized_data_minmax[:, :, i] = (combined_data[:, :, i] - min_temp) / (max_temp - min_temp)
+
+    # NaN 값을 0으로 대체하여 처리
+    normalized_data_minmax = np.nan_to_num(normalized_data_minmax)
 
     # 0~255 사이로 스케일링
     normalized_data_minmax = normalized_data_minmax * 255
@@ -39,6 +48,7 @@ def min_max_normalize_3d_image(data1, data2, data3, min_temp, max_temp):
     normalized_data_minmax = np.round(normalized_data_minmax).astype(np.uint8)
 
     return normalized_data_minmax
+
 
 def tensor_to_image(tensor):
     tensor = tensor * 225
@@ -48,8 +58,7 @@ def tensor_to_image(tensor):
         tensor = tensor[0]
     return PIL.Image.fromarray(tensor)
 
-def load_img(path_to_img):
-    max_dim = 256
+def load_img(path_to_img, max_dim):
     img = tf.io.read_file(path_to_img)
     img = tf.image.decode_image(img, channels=3)
     img = tf.image.convert_image_dtype(img, tf.float32)
@@ -68,7 +77,7 @@ def reduce_deviation(array, factor=0.5):
     median = np.median(array)  # 배열의 중앙값을 계산
     adjusted_array = median + factor * (array - median)  # 편차 줄이기
     return adjusted_array
-def add_noise_3d_image(data, style_name, weight1=0.5, weight2=0.5):
+def add_noise_2d_image(data, style_name, weight1=0.5, weight2=0.5):
     # Stage 1: Adapt scale factor matrix based on distance from the center
     center_x = data.shape[0] // 2
     center_y = data.shape[1] // 2
@@ -84,7 +93,7 @@ def add_noise_3d_image(data, style_name, weight1=0.5, weight2=0.5):
     modified_data = data * scale_factors
 
     # Stage 2: Using a style transfer model to generate noise
-    style_image = load_img(f'content_imgs/{style_name}') # style_image를 어떻게 설정할 지 좀 고려해보기
+    style_image = load_img(f'/media/lams/D/PycharmProjects/FRP_defect_detection/Transformer/tools/dataset_convert/content_imgs/{style_name}.png', max_dim=data.shape[0]) # style_image를 어떻게 설정할 지 좀 고려해보기
     hub_model = hub.load('https://tfhub.dev/google/magenta/arbitrary-image-stylization-v1-256/2')
     stylized_image = hub_model(tf.constant(style_image), tf.constant(style_image))[0]
     stylized_pil_image = tensor_to_image(stylized_image)
@@ -99,12 +108,23 @@ def add_noise_3d_image(data, style_name, weight1=0.5, weight2=0.5):
     # Stage 3: adjusted_noise_array + modified_data and add noise based on gaussian distribution
     weighted_array = (weight1 * modified_data + weight2 * adjusted_noise_array)
 
-    random_factors = np.random.uniform(1, 1.2, (data.shape[0], data.shape[1]))
+    random_factors = np.random.uniform(0.9, 1.1, (data.shape[0], data.shape[1]))
     weighted_array = weighted_array * random_factors
     weighted_array = np.clip(weighted_array, data.min(), data.max())
-
+    weighted_array = weighted_array.astype(int)
     return weighted_array
 
+def add_noise_3d_image(data, style_name, weight1=0.5, weight2=0.5):
+    if data.ndim == 3:
+        noisy_slices = []
+        for i in range(data.shape[2]):
+            noisy_slice = add_noise_2d_image(data[:, :, i], style_name, weight1, weight2)
+            noisy_slices.append(noisy_slice)
+        noisy_data = np.stack(noisy_slices, axis=2)
+    else:
+        raise ValueError("Input data should be a 3D array.")
+
+    return noisy_data
 def save_to_png(array, path, name):
     # 3차원 이미지를 RGB로 시각화 (여백, 축, 그리드 없음)
     fig, ax = plt.subplots(figsize=(array.shape[1], array.shape[0]), dpi=1) # 1:1 scale로 저장

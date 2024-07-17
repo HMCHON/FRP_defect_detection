@@ -1,20 +1,25 @@
 import sys
 import os
 import glob
+import yaml
+import math
+import re
+import gc
+import numpy as np
+import pandas as pd
+
+# Add the base directory to the system path
+sys.path.append('/media/lams/D/PycharmProjects/FRP_defect_detection')  # This should be the base directory containing the Transformer module
 
 from Transformer.tools.utils.split import *
 from Transformer.tools.utils.ATD3_analyze import *
 from Transformer.tools.utils.utils import *
 from Transformer.tools.utils.normalized import *
 
-import yaml
-import math
-import re
-import gc
 
 class create_dataset:
     def __init__(self, target_temp_path, name):
-        with open('ATD3-C.yaml', 'r', encoding='utf-8') as f:
+        with open('/media/lams/D/PycharmProjects/FRP_defect_detection/Transformer/tools/dataset_convert/ATD3-C.yaml', 'r', encoding='utf-8') as f:
             self.conf = yaml.safe_load(f)  # 안전하게 YAML 로드
         self.height = self.conf['height']
         self.width = self.conf['width']
@@ -65,10 +70,7 @@ class create_dataset:
                                                                        method='mean')
 
             # Normalized data to min-max method and draw temperature picture
-            if name in ['N-1', 'N-2']:
-                down_data_ori = min_max_normalize_3d_image(down_data1, down_data2, down_data3, min_temp, max_temp)
-            else:
-                down_data_ori = min_max_normalize_3d_image(down_data1, down_data2, down_data3, min_temp, max_temp)
+            down_data_ori = min_max_normalize_3d_image(down_data1, down_data2, down_data3, min_temp, max_temp)
             directory_path = f"{target_temp_path}/fig"
             if not os.path.exists(directory_path):
                 os.makedirs(directory_path)
@@ -102,44 +104,17 @@ class create_dataset:
             gc.collect()
 
 
-'''
-
-'''
-
 if __name__ == "__main__":
+    if len(sys.argv) != 3:
+        print("Usage: python create_ATD_dataset.py <base_path> <target>")
+        sys.exit(1)
 
-    base_path = '/media/lams/D/PycharmProjects/FRP_defect_detection/Transformer/dataset/ATD3_3'
-    target_folder_name_list = ['1-1']
+    base_path = sys.argv[1]
+    target = sys.argv[2]
+    data_path = os.path.join(base_path, target)
+    print(data_path)
+    create_dataset(data_path, target)
 
-    """
-     If you need to analyze ADT3 dataset, use the "TemperatureAnalysis" function.
-    """
-    for target in target_folder_name_list:
-        print(f"Analyzing {target} case ... ")
-        node_csv_path = f"{base_path}/node_data/{target}.csv"
-        txt_path = f"{base_path}/{target}"
-        process_all_txt_files_in_folder(txt_path, node_csv_path) # node 위치에 알맞게 txt 파일 조정
-
-        # 1차미분, 2차미분 구해서 graph로 plot. 0=미분x, 1=1차미분, 2=2차미분, 3=그래프그리기x
-        data_path = f"{base_path}/{target}"
-        num_files = 360
-        # for i in [0, 1, 2]:
-        #     analysis = TemperatureAnalysis(data_path, data_path, num_files, i)
-        #     analysis.run()
-        # print(f"{target} case analysis completed")
-
-        analysis = TemperatureAnalysis(data_path, data_path, num_files, 3)
-        analysis.run()
-        print(f"{target} case analysis completed")
-
-
-
-    """
-     Preprocessing ADT3 dataset (patching)
-    """
-    for target in target_folder_name_list:
-        data_path = f"{base_path}/{target}"
-        create_dataset(data_path, target)
-
-        # 메모리 해제 및 가비지 컬렉션
-        tf.keras.backend.clear_session()
+    # 메모리 해제 및 가비지 컬렉션
+    del data_path
+    gc.collect()

@@ -51,18 +51,19 @@ def re_index_temperature_data_based_on_csv(temperature_data_path, csv_data_name_
     temperatures = raw_temp_data[2::2]
     temperature_data = pd.DataFrame({'node': nodes, 'temperature': temperatures})
 
-    csv_data = pd.read_csv(csv_data_name_with_path, header=0, names=['x', 'y', 'z', 'node']) # csv data
-    # csv_data['node'] = pd.to_numeric(csv_data['node'], errors='coerce')
-    csv_data['node'] = csv_data['node'].astype(str)
+    csv_data = pd.read_csv(csv_data_name_with_path, header=0) # csv data
+    csv_data.rename(columns={'Node ID': 'node', 'Y(m)': 'y', 'X(m)': 'x'}, inplace=True)
+
+    csv_data['node'] = pd.to_numeric(csv_data['node'], errors='coerce').fillna(0).astype(int).astype(str)
     csv_data['y'] = pd.to_numeric(csv_data['y'], errors='coerce')
     csv_data['x'] = pd.to_numeric(csv_data['x'], errors='coerce')
     sorted_csv_data = csv_data.sort_values(by=['x', 'y'])
 
     # sorted_temperature_data = temperature_data.set_index('node').reindex(index=sorted_csv_data['node']).reset_index()
-    sorted_temperature_data = sorted_csv_data[['node', 'x', 'y']].merge(temperature_data, on='node', how='inner')
+    sorted_temperature_data = sorted_csv_data[['node','x', 'y']].merge(temperature_data, on='node', how='inner')
 
     sorted_csv_data.to_csv(csv_data_name_with_path.replace('.csv', '_sorted.csv'), index=False)
-    sorted_temperature_data.to_csv(temperature_data_path.replace('.txt', '_sorted.csv'), index=False,
+    sorted_temperature_data.to_csv(temperature_data_path.replace('.txt', '.csv'), index=False,
                                    sep=',', columns=['node', 'x', 'y', 'temperature'])
 
 

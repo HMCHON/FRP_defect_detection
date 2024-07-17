@@ -4,7 +4,7 @@ import random
 from scipy import stats
 from scipy.ndimage import zoom
 
-''' 256크기의 csv data를 patch로 나누는 함수 (256개의 patch 생성)'''
+''' 256*256크기의 csv data를 section로 나누는 함수 (48개의 patch 생성)'''
 def split_csv_data_into_patches(temp_data, patch_size):
     temp_size = temp_data.shape[0]
     patches = [temp_data[i:i + patch_size, j:j + patch_size] for i in range(0, temp_size, patch_size) for j in range(0, temp_size, patch_size)]
@@ -38,28 +38,32 @@ def print_and_collect_strided_matrices(matrix, stride, patch_size):
 
 ''' 생성한 area 위치에 알맞게 patch를 넣어주는 함 '''
 def transform_and_flatten(a, indices):
-    if a.shape[0] == indices.shape[0]: # a데이터의 크기와 indices의 크기가 같은 경우
-        temp_arr = a.flatten()
-        restructured = []
-        for row in indices:
-            restructured_row = []
-            for colloc in row:
-                restructured_row.append(temp_arr[colloc])
-            restructured.append(restructured_row)
-        return restructured
-    else:
-        patches = split_csv_data_into_patches(a, 4)
-        restructured_rows = []
+    # if a.shape[0] == indices.shape[0]: # a데이터의 크기와 indices의 크기가 같은 경우
+    #     temp_arr = a.flatten()
+    #     restructured = []
+    #     for row in indices:
+    #         restructured_row = []
+    #         for colloc in row:
+    #             restructured_row.append(temp_arr[colloc])
+    #         restructured.append(restructured_row)
+    #     return restructured
+    # else:
+    #     patches = split_csv_data_into_patches(a, indices.shape[0])
+    #     restructured_rows = []
+    #
+    #     # Iterate over each row in indices
+    #     for row in indices:
+    #         restructured_row = [a[colloc // 256, colloc % 256] for colloc in row]
+    #         concatenated_row = np.array(restructured_row)
+    #         restructured_rows.append(concatenated_row)
+    #
+    #     # Concatenate all rows vertically
+    #     final_concatenated = np.concatenate(restructured_rows, axis=0)
 
-        # Iterate over each row in indices
-        for row in indices:
-            restructured_row = [patches[colloc] for colloc in row]
-            concatenated_row = np.concatenate(restructured_row, axis=1)
-            restructured_rows.append(concatenated_row)
-
-        # Concatenate all rows vertically
-        final_concatenated = np.concatenate(restructured_rows, axis=0)
-        return final_concatenated
+    a_flat = a.reshape(-1,3)
+    restructured_row = a_flat[indices]
+    final_concatenated = restructured_row.reshape(indices.shape[0], indices.shape[1], 3)
+    return final_concatenated
 
 
 ''' temperature data가 들어있는 csv 파일을 64*64 크기(256개)로 변경 (ATD)'''
@@ -86,7 +90,8 @@ def downsample_temperature_data_by_physical_range(x_coords,
     # Convert lists to numpy arrays
     x_coords = np.array(x_coords)
     y_coords = np.array(y_coords)
-    temperatures = np.array([float(temp.strip().replace('[', '').replace(']', '')) for temp in temperatures])
+    temperatures = np.array([float(str(temp).strip().replace('[', '').replace(']', '')) for temp in temperatures])
+
 
 
     # Define the physical size of each cell
